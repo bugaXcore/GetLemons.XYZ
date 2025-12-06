@@ -295,18 +295,29 @@ export const Admin: React.FC<AdminProps> = ({ assets, homeConfig, onSave, onDele
 
       {/* --- ASSET EDIT MODE --- */}
       {mode === 'edit' && (
-        <div className="border border-[#333] bg-[#111] animate-in fade-in">
-          <div className="border-b border-[#333] p-4 flex justify-between items-center bg-[#1a1a1a]">
+        <div className="border border-[#333] bg-[#111] animate-in fade-in flex flex-col" style={{ maxHeight: 'calc(100vh - 250px)' }}>
+          <div className="border-b border-[#333] p-4 flex justify-between items-center bg-[#1a1a1a] shrink-0">
             <h1 className="font-bold flex items-center gap-2 font-source">
               <Plus size={16} className="text-yellow-400" />
               {editingId ? 'EDIT_ENTRY' : 'NEW_ENTRY'}
             </h1>
-            <button onClick={() => setMode('list')} className="text-gray-500 hover:text-white">
-              <X size={20} />
-            </button>
+            <div className="flex items-center gap-3">
+              <button 
+                type="submit"
+                form="asset-form"
+                className="bg-yellow-400 text-black px-4 py-1.5 text-xs font-bold uppercase hover:bg-yellow-300 transition-all flex items-center gap-1.5 rounded-full"
+              >
+                <Save size={12} />
+                {editingId ? 'Save' : 'Publish'}
+              </button>
+              <button onClick={() => setMode('list')} className="text-gray-500 hover:text-white">
+                <X size={20} />
+              </button>
+            </div>
           </div>
 
-          <form onSubmit={handleSubmit} className="p-6 md:p-8 space-y-6">
+          <form id="asset-form" onSubmit={handleSubmit} className="flex flex-col flex-1 overflow-hidden">
+            <div className="p-6 md:p-8 space-y-6 overflow-y-scroll flex-1">
             {/* Top Row */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-1">
@@ -440,8 +451,8 @@ export const Admin: React.FC<AdminProps> = ({ assets, homeConfig, onSave, onDele
               />
             </div>
 
-            {/* Footer Actions */}
-            <div className="pt-4 border-t border-[#333] flex items-center justify-between">
+            {/* Featured Checkbox */}
+            <div className="pt-4 border-t border-[#333]">
               <label className="flex items-center gap-2 cursor-pointer select-none">
                 <div className="relative">
                   <input 
@@ -458,14 +469,7 @@ export const Admin: React.FC<AdminProps> = ({ assets, homeConfig, onSave, onDele
                 </div>
                 <span className="text-xs uppercase text-gray-500">Feature on Homepage</span>
               </label>
-
-              <button 
-                type="submit" 
-                className="bg-yellow-400 text-black px-6 py-2 font-bold uppercase hover:bg-yellow-300 active:translate-y-0.5 transition-all flex items-center gap-2"
-              >
-                <Save size={16} />
-                {editingId ? 'Save Changes' : 'Publish'}
-              </button>
+            </div>
             </div>
           </form>
         </div>

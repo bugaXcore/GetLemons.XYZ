@@ -49,6 +49,13 @@ CREATE POLICY "Allow authenticated insert"
   TO authenticated
   WITH CHECK (true);
 
+-- Allow anonymous users to insert assets (for admin panel without auth)
+CREATE POLICY "Allow anonymous insert"
+  ON assets
+  FOR INSERT
+  TO anon
+  WITH CHECK (true);
+
 -- Allow authenticated users to update assets
 CREATE POLICY "Allow authenticated update"
   ON assets
@@ -57,11 +64,26 @@ CREATE POLICY "Allow authenticated update"
   USING (true)
   WITH CHECK (true);
 
+-- Allow anonymous users to update assets (for admin panel without auth)
+CREATE POLICY "Allow anonymous update"
+  ON assets
+  FOR UPDATE
+  TO anon
+  USING (true)
+  WITH CHECK (true);
+
 -- Allow authenticated users to delete assets
 CREATE POLICY "Allow authenticated delete"
   ON assets
   FOR DELETE
   TO authenticated
+  USING (true);
+
+-- Allow anonymous users to delete assets (for admin panel without auth)
+CREATE POLICY "Allow anonymous delete"
+  ON assets
+  FOR DELETE
+  TO anon
   USING (true);
 
 -- Insert sample data (optional)

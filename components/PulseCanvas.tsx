@@ -189,6 +189,8 @@ export const PulseCanvas: React.FC<PulseCanvasProps> = ({ config }) => {
             if (customPathData) {
               const { path, viewBox } = customPathData;
               const maxDim = Math.max(viewBox.width, viewBox.height) || 24;
+              // Use the same scale calculation as the default square
+              // This makes all shapes behave identically
               const scale = p.size / maxDim;
               
               if (scale > 0.0001) {

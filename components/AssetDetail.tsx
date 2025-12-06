@@ -28,7 +28,7 @@ export const AssetDetail: React.FC<AssetDetailProps> = ({ asset, onBack }) => {
   };
 
   return (
-    <div className="max-w-7xl mx-auto px-4 md:px-8 py-8 w-full animate-in fade-in duration-300 min-h-screen flex flex-col">
+    <div className="max-w-7xl mx-auto px-4 md:px-8 py-8 w-full animate-in fade-in duration-300 flex flex-col">
       {/* Navigation */}
       <button 
         onClick={onBack}
@@ -60,17 +60,17 @@ export const AssetDetail: React.FC<AssetDetailProps> = ({ asset, onBack }) => {
       <div className="flex flex-wrap items-center gap-y-3 gap-x-6 text-xs font-mono text-gray-400 mb-6 bg-[#151515] border border-[#333] p-3">
         <div className="flex items-center gap-2">
           <span className="text-gray-600 uppercase font-bold">Version:</span>
-          <span className="text-white bg-[#222] px-1.5">{asset.version}</span>
+          <span className="text-white bg-[#222] px-1.5">{asset.version || 'N/A'}</span>
         </div>
         <div className="w-px h-3 bg-[#333] hidden sm:block"></div>
         <div className="flex items-center gap-2">
           <span className="text-gray-600 uppercase font-bold">License:</span>
-          <span className="text-white">{asset.license}</span>
+          <span className="text-white">{asset.license || 'N/A'}</span>
         </div>
         <div className="w-px h-3 bg-[#333] hidden sm:block"></div>
         <div className="flex items-center gap-2">
           <span className="text-gray-600 uppercase font-bold">File_Ext:</span>
-          <span className="text-white">{asset.fileType}</span>
+          <span className="text-white">{asset.fileType || 'N/A'}</span>
         </div>
         <div className="w-px h-3 bg-[#333] hidden sm:block"></div>
         <div className="flex items-center gap-2">
@@ -80,7 +80,7 @@ export const AssetDetail: React.FC<AssetDetailProps> = ({ asset, onBack }) => {
         
         {/* Tags Inline */}
         <div className="sm:ml-auto flex flex-wrap gap-2 border-t border-[#333] sm:border-0 pt-2 sm:pt-0 w-full sm:w-auto">
-           {[asset.category, asset.fileType.replace('.',''), 'MOTION', 'DEV'].map(tag => (
+           {[asset.category, asset.fileType?.replace('.','') || 'N/A', 'MOTION', 'DEV'].filter(Boolean).map(tag => (
              <span key={tag} className="flex items-center text-[10px] uppercase text-gray-500 hover:text-white transition-colors cursor-default">
                <Hash size={10} className="mr-0.5 text-yellow-600"/>{tag}
              </span>
@@ -89,7 +89,7 @@ export const AssetDetail: React.FC<AssetDetailProps> = ({ asset, onBack }) => {
       </div>
 
       {/* Full Width Cinema Viewer / Carousel */}
-      <div className="w-full aspect-video bg-[#0a0a0a] border border-[#333] relative overflow-hidden group mb-4 select-none">
+      <div className="w-full aspect-video max-h-[60vh] bg-[#0a0a0a] border border-[#333] relative overflow-hidden group mb-4 select-none">
         {activeImage ? (
           <>
             <img 
@@ -162,10 +162,8 @@ export const AssetDetail: React.FC<AssetDetailProps> = ({ asset, onBack }) => {
              <h3 className="text-xl font-bold flex items-center gap-2 uppercase mb-6 text-white font-source">
                <FileText size={20} /> {isWork ? 'Project Description' : 'Documentation'}
              </h3>
-             <div className="prose prose-invert prose-p:font-mono prose-p:text-sm prose-p:text-gray-400 max-w-none">
-               <p className="whitespace-pre-line leading-relaxed">
-                 {asset.fullDesc}
-               </p>
+             <div className="font-mono text-sm text-gray-300 leading-relaxed whitespace-pre-line">
+               {asset.fullDesc || 'No description available.'}
              </div>
            </div>
            

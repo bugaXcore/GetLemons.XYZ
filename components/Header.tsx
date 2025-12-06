@@ -6,6 +6,8 @@ import { ShieldAlert } from 'lucide-react';
 interface HeaderProps {
   currentView: ViewState;
   setCurrentView: (view: ViewState) => void;
+  showBgControls: boolean;
+  setShowBgControls: (show: boolean) => void;
 }
 
 // Custom 8-bit Lemon Icon
@@ -27,7 +29,9 @@ const PixelLemon = ({ size = 24, className = "" }: { size?: number, className?: 
   </svg>
 );
 
-export const Header: React.FC<HeaderProps> = ({ currentView, setCurrentView }) => {
+export const Header: React.FC<HeaderProps> = ({ currentView, setCurrentView, showBgControls, setShowBgControls }) => {
+  const [showCogIcon, setShowCogIcon] = React.useState(false);
+  
   const navItems: { label: string; value: ViewState }[] = [
     { label: 'HOME', value: 'home' },
     { label: 'REPOSITORY', value: 'repository' },
@@ -35,16 +39,52 @@ export const Header: React.FC<HeaderProps> = ({ currentView, setCurrentView }) =
     { label: 'INFO', value: 'info' },
   ];
 
+  const handleLemonClick = () => {
+    if (showCogIcon) {
+      // Close both cog and menu
+      setShowCogIcon(false);
+      setShowBgControls(false);
+    } else {
+      // Open cog
+      setShowCogIcon(true);
+    }
+  };
+
   return (
     <header className="sticky top-0 z-50 h-14 w-full border-b border-[#333] bg-[#111]/80 backdrop-blur-sm flex items-center justify-between px-4 md:px-8">
       {/* Logo */}
-      <div 
-        className="flex items-center gap-3 cursor-pointer group"
-        onClick={() => setCurrentView('home')}
-      >
-        <PixelLemon className="text-[#eee] group-hover:text-yellow-400 transition-colors duration-300" size={24} />
-        <span className="font-bold tracking-wider text-lg mt-1 hidden md:block font-source">Getlemons.xyz</span>
-        <span className="font-bold tracking-wider text-lg mt-1 md:hidden font-source">GL.xyz</span>
+      <div className="flex items-center gap-3 relative">
+        <div className="relative flex items-center">
+          <button
+            onClick={handleLemonClick}
+            className="cursor-pointer flex items-center"
+            title="Toggle settings access"
+          >
+            <PixelLemon className="text-[#eee] hover:text-yellow-400 transition-colors duration-300" size={24} />
+          </button>
+          
+          {/* Settings button appears below lemon icon when lemon is clicked */}
+          {showCogIcon && (
+            <button
+              onClick={() => setShowBgControls(!showBgControls)}
+              className="absolute top-full left-1/2 -translate-x-1/2 mt-2 p-2 bg-black/90 hover:bg-black text-gray-500 hover:text-white border border-[#333] rounded-lg transition-all shadow-lg z-50"
+              title="Background Settings"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="3"></circle>
+                <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+              </svg>
+            </button>
+          )}
+        </div>
+        
+        <button
+          onClick={() => setCurrentView('home')}
+          className="cursor-pointer"
+        >
+          <span className="font-bold tracking-wider text-lg mt-1 hidden md:block font-source hover:text-yellow-400 transition-colors duration-300">Getlemons.xyz</span>
+          <span className="font-bold tracking-wider text-lg mt-1 md:hidden font-source hover:text-yellow-400 transition-colors duration-300">GL.xyz</span>
+        </button>
       </div>
 
       <div className="flex items-center gap-4 md:gap-8">

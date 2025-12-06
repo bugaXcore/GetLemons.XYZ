@@ -20,7 +20,37 @@ export const Repository: React.FC<RepositoryProps> = ({
 }) => {
   const [activeFilter, setActiveFilter] = useState<Category>('All');
 
-  const categories: Category[] = ['All', 'AE Scripts', '3D Assets', 'Other'];
+  // Calculate category counts
+  const categoryCounts = React.useMemo(() => {
+    const counts: Record<string, number> = {
+      'All': assets.length,
+      'AE Scripts': 0,
+      '3D Assets': 0,
+      'Other': 0
+    };
+
+    assets.forEach(asset => {
+      if (STANDARD_CATEGORIES.includes(asset.category)) {
+        counts[asset.category] = (counts[asset.category] || 0) + 1;
+      } else {
+        counts['Other'] = (counts['Other'] || 0) + 1;
+      }
+    });
+
+    return counts;
+  }, [assets]);
+
+  // Only show categories that have assets (or "All" if there are any assets)
+  const availableCategories: Category[] = React.useMemo(() => {
+    const cats: Category[] = [];
+    
+    if (categoryCounts['All'] > 0) cats.push('All');
+    if (categoryCounts['AE Scripts'] > 0) cats.push('AE Scripts');
+    if (categoryCounts['3D Assets'] > 0) cats.push('3D Assets');
+    if (categoryCounts['Other'] > 0) cats.push('Other');
+    
+    return cats;
+  }, [categoryCounts]);
 
   const filteredAssets = assets.filter(asset => {
     if (activeFilter === 'All') return true;
@@ -46,7 +76,7 @@ export const Repository: React.FC<RepositoryProps> = ({
           
           {/* Filter Bar */}
           <div className="flex flex-wrap gap-2">
-            {categories.map(cat => (
+            {availableCategories.map(cat => (
               <button
                 key={cat}
                 onClick={() => setActiveFilter(cat)}
@@ -57,7 +87,7 @@ export const Repository: React.FC<RepositoryProps> = ({
                   }
                 `}
               >
-                [{cat}]
+                [{cat}] <span className="ml-1 opacity-60">({categoryCounts[cat]})</span>
               </button>
             ))}
           </div>
