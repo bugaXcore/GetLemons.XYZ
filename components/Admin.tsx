@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { Asset, Category, HomepageConfig } from '../types';
-import { Save, Plus, X, Trash2, Edit2, ArrowUp, ArrowDown, Search, AlertTriangle, LayoutTemplate, Database, LogOut } from 'lucide-react';
+import { Save, Plus, X, Trash2, Edit2, ArrowUp, ArrowDown, Search, AlertTriangle, LayoutTemplate, Database, LogOut, Image as ImageIcon, ExternalLink } from 'lucide-react';
 import { supabase } from '../supabaseClient';
 
 interface AdminProps {
@@ -41,10 +41,15 @@ export const Admin: React.FC<AdminProps> = ({ assets, homeConfig, onSave, onDele
     fullDesc: '',
     featured: false,
     gallery: [],
-    section: 'repository'
+    section: 'repository',
+    downloadUrl: '',
+    installationSteps: []
   };
   const [formData, setFormData] = useState<Partial<Asset>>(defaultForm);
   const [galleryInput, setGalleryInput] = useState('');
+  
+  // Validation errors
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
   // Form State for Homepage
   const [homeFormData, setHomeFormData] = useState<HomepageConfig>(homeConfig);
@@ -62,6 +67,7 @@ export const Admin: React.FC<AdminProps> = ({ assets, homeConfig, onSave, onDele
     setEditingId(asset.id);
     setMode('edit');
     setDeleteConfirmId(null);
+    setErrors({});
   };
 
   const handleNewClick = () => {
@@ -70,6 +76,7 @@ export const Admin: React.FC<AdminProps> = ({ assets, homeConfig, onSave, onDele
     setEditingId(null);
     setMode('edit');
     setDeleteConfirmId(null);
+    setErrors({});
   };
 
   const executeDelete = (id: number) => {
@@ -89,6 +96,10 @@ export const Admin: React.FC<AdminProps> = ({ assets, homeConfig, onSave, onDele
   const handleFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
+    // Clear error for this field when user starts typing
+    if (errors[name]) {
+      setErrors(prev => ({ ...prev, [name]: '' }));
+    }
   };
 
   const handleCategorySelectChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
@@ -105,14 +116,79 @@ export const Admin: React.FC<AdminProps> = ({ assets, homeConfig, onSave, onDele
     setFormData(prev => ({ ...prev, featured: e.target.checked }));
   };
 
+  // Gallery management helpers
+  const addGalleryItem = () => {
+    const newUrl = prompt('Enter image URL:');
+    if (newUrl && newUrl.trim()) {
+      setFormData(prev => ({
+        ...prev,
+        gallery: [...(prev.gallery || []), newUrl.trim()]
+      }));
+    }
+  };
+
+  const removeGalleryItem = (index: number) => {
+    setFormData(prev => ({
+      ...prev,
+      gallery: (prev.gallery || []).filter((_, i) => i !== index)
+    }));
+  };
+
+  const updateGalleryItem = (index: number, newUrl: string) => {
+    setFormData(prev => ({
+      ...prev,
+      gallery: (prev.gallery || []).map((url, i) => i === index ? newUrl : url)
+    }));
+  };
+
+  // Installation steps management
+  const addInstallationStep = () => {
+    const newStep = prompt('Enter installation step:');
+    if (newStep && newStep.trim()) {
+      setFormData(prev => ({
+        ...prev,
+        installationSteps: [...(prev.installationSteps || []), newStep.trim()]
+      }));
+    }
+  };
+
+  const removeInstallationStep = (index: number) => {
+    setFormData(prev => ({
+      ...prev,
+      installationSteps: (prev.installationSteps || []).filter((_, i) => i !== index)
+    }));
+  };
+
+  const updateInstallationStep = (index: number, newStep: string) => {
+    setFormData(prev => ({
+      ...prev,
+      installationSteps: (prev.installationSteps || []).map((step, i) => i === index ? newStep : step)
+    }));
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.title || !formData.shortDesc) return;
-
-    const processedGallery = galleryInput
-      .split(',')
-      .map(url => url.trim())
-      .filter(url => url.length > 0);
+    
+    // Validation
+    const newErrors: Record<string, string> = {};
+    
+    if (!formData.title || formData.title.trim() === '') {
+      newErrors.title = 'Title is required';
+    }
+    
+    if (!formData.shortDesc || formData.shortDesc.trim() === '') {
+      newErrors.shortDesc = 'Short description is required';
+    }
+    
+    if (!formData.category || formData.category.trim() === '') {
+      newErrors.category = 'Category is required';
+    }
+    
+    // If there are errors, show them and don't submit
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
+      return;
+    }
 
     const finalCategory = formData.category && formData.category.trim() !== '' ? formData.category : 'Other';
 
@@ -126,12 +202,18 @@ export const Admin: React.FC<AdminProps> = ({ assets, homeConfig, onSave, onDele
       shortDesc: formData.shortDesc || '',
       fullDesc: formData.fullDesc || '',
       featured: formData.featured || false,
-      gallery: processedGallery,
-      section: (formData.section as 'repository' | 'works') || 'repository'
+      gallery: formData.gallery || [],
+      section: (formData.section as 'repository' | 'works') || 'repository',
+      downloadUrl: formData.downloadUrl || undefined,
+      installationSteps: formData.installationSteps || undefined
     };
+
+    console.log('💾 Saving asset with downloadUrl:', formData.downloadUrl);
+    console.log('📦 Full asset object:', assetToSave);
 
     onSave(assetToSave);
     setMode('list');
+    setErrors({});
   };
 
   // Homepage Handlers
@@ -316,22 +398,28 @@ export const Admin: React.FC<AdminProps> = ({ assets, homeConfig, onSave, onDele
             </div>
           </div>
 
-          <form id="asset-form" onSubmit={handleSubmit} className="flex flex-col flex-1 overflow-hidden">
-            <div className="p-6 md:p-8 space-y-6 overflow-y-scroll flex-1">
+          <form id="asset-form" onSubmit={handleSubmit} className="flex-1 overflow-y-auto">
+            <div className="p-6 md:p-8 space-y-6">
             {/* Top Row */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-1">
-                <label className="text-[10px] uppercase text-gray-500 tracking-wider">Title</label>
+                <label className="text-[10px] uppercase text-gray-500 tracking-wider">Title *</label>
                 <input
                   type="text"
                   name="title"
                   value={formData.title}
                   onChange={handleFormChange}
                   placeholder="e.g. PROJECT_NEON"
-                  className="w-full bg-transparent border border-[#333] p-3 text-white focus:border-yellow-400 focus:outline-none transition-colors"
+                  className={`w-full bg-transparent border p-3 text-white focus:outline-none transition-colors ${
+                    errors.title ? 'border-red-500 focus:border-red-400' : 'border-[#333] focus:border-yellow-400'
+                  }`}
                   autoFocus
-                  required
                 />
+                {errors.title && (
+                  <p className="text-red-500 text-[10px] flex items-center gap-1 mt-1">
+                    <AlertTriangle size={10} /> {errors.title}
+                  </p>
+                )}
               </div>
               
               <div className="space-y-1">
@@ -350,12 +438,14 @@ export const Admin: React.FC<AdminProps> = ({ assets, homeConfig, onSave, onDele
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-1">
-                <label className="text-[10px] uppercase text-gray-500 tracking-wider">Category</label>
+                <label className="text-[10px] uppercase text-gray-500 tracking-wider">Category *</label>
                 <div className="space-y-2">
                   <select
                     value={currentCategoryValue}
                     onChange={handleCategorySelectChange}
-                    className="w-full bg-[#111] border border-[#333] p-3 text-white focus:border-yellow-400 focus:outline-none appearance-none"
+                    className={`w-full bg-[#111] border p-3 text-white focus:outline-none appearance-none ${
+                      errors.category ? 'border-red-500 focus:border-red-400' : 'border-[#333] focus:border-yellow-400'
+                    }`}
                   >
                     {STANDARD_CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
                     <option value="Other">Other / Custom</option>
@@ -368,8 +458,15 @@ export const Admin: React.FC<AdminProps> = ({ assets, homeConfig, onSave, onDele
                       value={formData.category}
                       onChange={handleFormChange}
                       placeholder="Enter custom category name..."
-                      className="w-full bg-transparent border border-[#333] p-3 text-sm text-yellow-400 placeholder:text-gray-600 focus:border-yellow-400 focus:outline-none animate-in fade-in slide-in-from-top-1"
+                      className={`w-full bg-transparent border p-3 text-sm text-yellow-400 placeholder:text-gray-600 focus:outline-none animate-in fade-in slide-in-from-top-1 ${
+                        errors.category ? 'border-red-500 focus:border-red-400' : 'border-[#333] focus:border-yellow-400'
+                      }`}
                     />
+                  )}
+                  {errors.category && (
+                    <p className="text-red-500 text-[10px] flex items-center gap-1">
+                      <AlertTriangle size={10} /> {errors.category}
+                    </p>
                   )}
                 </div>
               </div>
@@ -415,16 +512,22 @@ export const Admin: React.FC<AdminProps> = ({ assets, homeConfig, onSave, onDele
 
             {/* Text Areas */}
             <div className="space-y-1">
-              <label className="text-[10px] uppercase text-gray-500 tracking-wider">Short Description (Summary)</label>
+              <label className="text-[10px] uppercase text-gray-500 tracking-wider">Short Description (Summary) *</label>
               <input
                 type="text"
                 name="shortDesc"
                 value={formData.shortDesc}
                 onChange={handleFormChange}
                 placeholder="Brief one-liner..."
-                className="w-full bg-transparent border border-[#333] p-3 text-white focus:border-yellow-400 focus:outline-none"
-                required
+                className={`w-full bg-transparent border p-3 text-white focus:outline-none ${
+                  errors.shortDesc ? 'border-red-500 focus:border-red-400' : 'border-[#333] focus:border-yellow-400'
+                }`}
               />
+              {errors.shortDesc && (
+                <p className="text-red-500 text-[10px] flex items-center gap-1 mt-1">
+                  <AlertTriangle size={10} /> {errors.shortDesc}
+                </p>
+              )}
             </div>
 
             <div className="space-y-1">
@@ -439,20 +542,128 @@ export const Admin: React.FC<AdminProps> = ({ assets, homeConfig, onSave, onDele
               />
             </div>
 
-            {/* Gallery Input */}
-            <div className="space-y-1">
-              <label className="text-[10px] uppercase text-gray-500 tracking-wider">Gallery Images (Comma Separated URLs)</label>
+            {/* Download URL */}
+            <div className="space-y-1 pt-2">
+              <label className="text-[10px] uppercase text-gray-500 tracking-wider flex items-center gap-2">
+                <span>Download Link (Asset File)</span>
+                <span className="text-[9px] text-gray-600 normal-case font-normal">(Direct link to .zip, .jsx, etc.)</span>
+              </label>
               <input
-                type="text"
-                value={galleryInput}
-                onChange={(e) => setGalleryInput(e.target.value)}
-                placeholder="https://example.com/img1.png, https://example.com/img2.gif"
-                className="w-full bg-transparent border border-[#333] p-3 text-white focus:border-yellow-400 focus:outline-none text-xs font-mono"
+                type="url"
+                name="downloadUrl"
+                value={formData.downloadUrl || ''}
+                onChange={handleFormChange}
+                placeholder="https://example.com/files/asset.zip"
+                className="w-full bg-transparent border border-[#333] p-3 text-white focus:border-yellow-400 focus:outline-none font-mono text-sm"
               />
             </div>
 
+            {/* Gallery Management */}
+            <div className="space-y-3 pt-4 border-t border-[#333]">
+              <div className="flex items-center justify-between">
+                <label className="text-[10px] uppercase text-gray-500 tracking-wider">Gallery Images</label>
+                <button
+                  type="button"
+                  onClick={addGalleryItem}
+                  className="bg-[#222] hover:bg-[#333] text-white px-3 py-1 text-[10px] uppercase font-bold flex items-center gap-1 transition-colors"
+                >
+                  <Plus size={12} /> Add Image
+                </button>
+              </div>
+
+              {(formData.gallery && formData.gallery.length > 0) ? (
+                <div className="space-y-2">
+                  {formData.gallery.map((url, index) => (
+                    <div key={index} className="flex gap-2 items-start group">
+                      <div className="w-16 h-16 shrink-0 bg-[#0a0a0a] border border-[#333] flex items-center justify-center overflow-hidden">
+                        {url ? (
+                          <img 
+                            src={url} 
+                            alt={`Gallery ${index + 1}`} 
+                            className="w-full h-full object-cover"
+                            onError={(e) => {
+                              (e.target as HTMLImageElement).style.display = 'none';
+                            }}
+                          />
+                        ) : (
+                          <ImageIcon size={20} className="text-gray-700" />
+                        )}
+                      </div>
+                      <input
+                        type="url"
+                        value={url}
+                        onChange={(e) => updateGalleryItem(index, e.target.value)}
+                        placeholder={`Image URL ${index + 1}`}
+                        className="flex-1 bg-transparent border border-[#333] p-2 text-white focus:border-yellow-400 focus:outline-none text-xs font-mono"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => removeGalleryItem(index)}
+                        className="p-2 text-gray-500 hover:text-red-500 hover:bg-red-900/20 transition-colors shrink-0"
+                        title="Remove"
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-xs text-gray-600 italic text-center py-4 border border-dashed border-[#333]">
+                  No gallery images yet. Click "Add Image" to start.
+                </div>
+              )}
+            </div>
+
+            {/* Installation Steps Management (Only for Repository items) */}
+            {formData.section === 'repository' && (
+              <div className="space-y-3 pt-4 border-t border-[#333]">
+                <div className="flex items-center justify-between">
+                  <label className="text-[10px] uppercase text-gray-500 tracking-wider flex items-center gap-2">
+                    <span>Installation Protocol Steps</span>
+                    <span className="text-[9px] text-gray-600 normal-case font-normal">(Use {'{fileType}'} to insert file type)</span>
+                  </label>
+                  <button
+                    type="button"
+                    onClick={addInstallationStep}
+                    className="bg-[#222] hover:bg-[#333] text-white px-3 py-1 text-[10px] uppercase font-bold flex items-center gap-1 transition-colors"
+                  >
+                    <Plus size={12} /> Add Step
+                  </button>
+                </div>
+
+                {(formData.installationSteps && formData.installationSteps.length > 0) ? (
+                  <div className="space-y-2">
+                    {formData.installationSteps.map((step, index) => (
+                      <div key={index} className="flex gap-2 items-center group">
+                        <span className="text-gray-600 text-xs font-mono w-6">{index + 1}.</span>
+                        <input
+                          type="text"
+                          value={step}
+                          onChange={(e) => updateInstallationStep(index, e.target.value)}
+                          placeholder={`Step ${index + 1}`}
+                          className="flex-1 bg-transparent border border-[#333] p-2 text-white focus:border-yellow-400 focus:outline-none text-xs font-mono"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => removeInstallationStep(index)}
+                          className="p-2 text-gray-500 hover:text-red-500 hover:bg-red-900/20 transition-colors shrink-0"
+                          title="Remove"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-xs text-gray-600 italic text-center py-4 border border-dashed border-[#333]">
+                    No custom installation steps. Default steps will be shown. Click "Add Step" to customize.
+                  </div>
+                )}
+              </div>
+            )}
+
             {/* Featured Checkbox */}
-            <div className="pt-4 border-t border-[#333]">
+            <div className="pt-4 border-t border-[#333] pb-4">
               <label className="flex items-center gap-2 cursor-pointer select-none">
                 <div className="relative">
                   <input 
@@ -470,7 +681,7 @@ export const Admin: React.FC<AdminProps> = ({ assets, homeConfig, onSave, onDele
                 <span className="text-xs uppercase text-gray-500">Feature on Homepage</span>
               </label>
             </div>
-            </div>
+          </div>
           </form>
         </div>
       )}
@@ -525,6 +736,9 @@ export const Admin: React.FC<AdminProps> = ({ assets, homeConfig, onSave, onDele
                   >
                     <div className="flex items-center gap-1">Category {sortField === 'category' && (sortDir === 'asc' ? <ArrowUp size={10}/> : <ArrowDown size={10}/>)}</div>
                   </th>
+                  <th className="p-3 font-normal border-r border-[#333] w-32 hidden lg:table-cell">
+                    Download
+                  </th>
                   <th className="p-3 font-normal border-r border-[#333] w-20 text-center">Featured</th>
                   <th className="p-3 font-normal w-32 text-right">Actions</th>
                 </tr>
@@ -540,6 +754,26 @@ export const Admin: React.FC<AdminProps> = ({ assets, homeConfig, onSave, onDele
                       </span>
                     </td>
                     <td className="p-3 text-gray-400 border-r border-[#333] hidden md:table-cell uppercase">{asset.category}</td>
+                    <td className="p-3 border-r border-[#333] hidden lg:table-cell">
+                      {asset.downloadUrl ? (
+                        <a 
+                          href={asset.downloadUrl} 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          className="flex items-center gap-1.5 text-green-400 hover:text-green-300 text-[10px] uppercase font-bold group"
+                          title={asset.downloadUrl}
+                        >
+                          <div className="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse"></div>
+                          <span className="group-hover:underline">Active</span>
+                          <ExternalLink size={10} className="opacity-0 group-hover:opacity-100 transition-opacity" />
+                        </a>
+                      ) : (
+                        <div className="flex items-center gap-1.5 text-gray-600 text-[10px] uppercase">
+                          <div className="w-1.5 h-1.5 bg-gray-700 rounded-full"></div>
+                          <span>No Link</span>
+                        </div>
+                      )}
+                    </td>
                     <td className="p-3 border-r border-[#333] text-center">
                       {asset.featured ? <span className="text-yellow-400">★</span> : <span className="text-gray-800">.</span>}
                     </td>
@@ -584,7 +818,7 @@ export const Admin: React.FC<AdminProps> = ({ assets, homeConfig, onSave, onDele
                 ))}
                 {filteredAssets.length === 0 && (
                   <tr>
-                    <td colSpan={6} className="p-8 text-center text-gray-600 italic">
+                    <td colSpan={7} className="p-8 text-center text-gray-600 italic">
                       NO_RECORDS_FOUND
                     </td>
                   </tr>

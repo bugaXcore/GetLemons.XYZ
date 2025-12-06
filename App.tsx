@@ -69,6 +69,8 @@ export default function App() {
         fileType: item.file_type || item.fileType,
         shortDesc: item.short_desc || item.shortDesc,
         fullDesc: item.full_desc || item.fullDesc,
+        downloadUrl: item.download_url || item.downloadUrl,
+        installationSteps: item.installation_steps || item.installationSteps,
       }));
       setAssets(transformedAssets as Asset[]);
     } else {
@@ -95,6 +97,9 @@ export default function App() {
   };
 
   const handleSaveAsset = async (asset: Asset) => {
+    console.log('🔵 App.tsx received asset:', asset);
+    console.log('🔵 downloadUrl value:', asset.downloadUrl);
+    
     // Determine if this is a new asset (ID from Date.now() is a large timestamp)
     const isNewAsset = asset.id > 100000; // Any ID > 100000 is likely a temp timestamp ID
     
@@ -106,39 +111,59 @@ export default function App() {
     });
 
     // Transform camelCase to snake_case for database
-    const dbAsset: any = {
-      title: asset.title,
-      category: asset.category,
-      version: asset.version,
-      license: asset.license,
-      file_type: asset.fileType, // Transform to snake_case
-      short_desc: asset.shortDesc, // Transform to snake_case
-      full_desc: asset.fullDesc, // Transform to snake_case
-      featured: asset.featured,
-      gallery: asset.gallery,
-      section: asset.section
-    };
-
     let error;
     
     if (isNewAsset) {
       // New asset - use INSERT (don't include ID, let database generate it)
+      const dbAssetNew: any = {
+        title: asset.title,
+        category: asset.category,
+        version: asset.version,
+        license: asset.license,
+        file_type: asset.fileType,
+        short_desc: asset.shortDesc,
+        full_desc: asset.fullDesc,
+        featured: asset.featured,
+        gallery: asset.gallery,
+        section: asset.section,
+        download_url: asset.downloadUrl,
+        installation_steps: asset.installationSteps
+      };
+      
+      console.log('🟢 Inserting to DB:', dbAssetNew);
+      
       const { error: insertError } = await supabase
         .from('assets')
-        .insert(dbAsset);
+        .insert(dbAssetNew);
       error = insertError;
     } else {
-      // Existing asset - use UPDATE
-      dbAsset.id = asset.id;
+      // Existing asset - use UPDATE (don't include ID in data, use it in WHERE clause)
+      const dbAssetUpdate: any = {
+        title: asset.title,
+        category: asset.category,
+        version: asset.version,
+        license: asset.license,
+        file_type: asset.fileType,
+        short_desc: asset.shortDesc,
+        full_desc: asset.fullDesc,
+        featured: asset.featured,
+        gallery: asset.gallery,
+        section: asset.section,
+        download_url: asset.downloadUrl,
+        installation_steps: asset.installationSteps
+      };
+      
+      console.log('🟡 Updating DB for ID:', asset.id, 'with data:', dbAssetUpdate);
+      
       const { error: updateError } = await supabase
         .from('assets')
-        .update(dbAsset)
+        .update(dbAssetUpdate)
         .eq('id', asset.id);
       error = updateError;
     }
 
     if (error) {
-      console.error('Error saving asset:', error);
+      console.error('❌ Error saving asset:', error);
       alert('Failed to save to database. Check console.');
       fetchAssets(); // Revert
     } else {
@@ -260,7 +285,8 @@ export default function App() {
            />
         </div>
         
-        <main className="flex-grow w-full pointer-events-auto">
+        {/* Add top padding to account for fixed header */}
+        <main className="flex-grow w-full pointer-events-auto pt-14">
           {renderContent()}
         </main>
 

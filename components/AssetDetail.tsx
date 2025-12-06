@@ -15,6 +15,17 @@ export const AssetDetail: React.FC<AssetDetailProps> = ({ asset, onBack }) => {
   const activeImage = gallery.length > 0 ? gallery[activeImageIndex] : null;
   const isWork = asset.section === 'works';
 
+  // Format the date from database or show fallback
+  const formatDate = (dateString?: string) => {
+    if (!dateString) return 'N/A';
+    try {
+      const date = new Date(dateString);
+      return date.toLocaleDateString('en-US', { year: 'numeric', month: '2-digit', day: '2-digit' });
+    } catch {
+      return 'N/A';
+    }
+  };
+
   const nextImage = (e?: React.MouseEvent) => {
     e?.stopPropagation();
     if (gallery.length <= 1) return;
@@ -50,10 +61,25 @@ export const AssetDetail: React.FC<AssetDetailProps> = ({ asset, onBack }) => {
         </div>
         
         {/* Download Button */}
-        <button className="bg-[#eee] text-[#111] font-bold px-8 py-4 flex items-center justify-center gap-3 hover:bg-white hover:scale-[1.01] active:scale-[0.99] transition-all uppercase tracking-wide group shrink-0 shadow-[4px_4px_0px_0px_rgba(51,51,51,1)] active:shadow-none active:translate-x-[2px] active:translate-y-[2px]">
-          <Download size={20} className="stroke-[2.5px]" />
-          {isWork ? 'Download Project' : 'Download Asset'}
-        </button>
+        {asset.downloadUrl ? (
+          <a 
+            href={asset.downloadUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="bg-[#eee] text-[#111] font-bold px-8 py-4 flex items-center justify-center gap-3 hover:bg-white hover:scale-[1.01] active:scale-[0.99] transition-all uppercase tracking-wide group shrink-0 shadow-[4px_4px_0px_0px_rgba(51,51,51,1)] active:shadow-none active:translate-x-[2px] active:translate-y-[2px]"
+          >
+            <Download size={20} className="stroke-[2.5px]" />
+            {isWork ? 'Download Project' : 'Download Asset'}
+          </a>
+        ) : (
+          <button 
+            disabled
+            className="bg-[#333] text-gray-600 font-bold px-8 py-4 flex items-center justify-center gap-3 uppercase tracking-wide cursor-not-allowed opacity-50"
+          >
+            <Download size={20} className="stroke-[2.5px]" />
+            No Download Available
+          </button>
+        )}
       </div>
 
       {/* Compact Meta Bar */}
@@ -75,7 +101,7 @@ export const AssetDetail: React.FC<AssetDetailProps> = ({ asset, onBack }) => {
         <div className="w-px h-3 bg-[#333] hidden sm:block"></div>
         <div className="flex items-center gap-2">
           <span className="text-gray-600 uppercase font-bold">Updated:</span>
-          <span className="text-white">2024-10-27</span>
+          <span className="text-white">{formatDate(asset.created_at)}</span>
         </div>
         
         {/* Tags Inline */}
@@ -173,9 +199,17 @@ export const AssetDetail: React.FC<AssetDetailProps> = ({ asset, onBack }) => {
                   <div className="absolute top-0 left-0 w-full h-1 bg-yellow-400/20"></div>
                   <p className="mb-3 uppercase font-bold text-yellow-500 tracking-wider">Installation_Protocol:</p>
                   <ol className="list-decimal list-inside space-y-2 marker:text-gray-600">
-                    <li>Download <span className="text-white">{asset.fileType}</span> file</li>
-                    <li>Extract to root dir</li>
-                    <li>Run via terminal</li>
+                    {asset.installationSteps && asset.installationSteps.length > 0 ? (
+                      asset.installationSteps.map((step, index) => (
+                        <li key={index} dangerouslySetInnerHTML={{ __html: step.replace(/{fileType}/g, `<span class="text-white">${asset.fileType}</span>`) }} />
+                      ))
+                    ) : (
+                      <>
+                        <li>Download <span className="text-white">{asset.fileType}</span> file</li>
+                        <li>Extract to root dir</li>
+                        <li>Run via terminal</li>
+                      </>
+                    )}
                   </ol>
                 </div>
              </div>

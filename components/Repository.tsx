@@ -2,6 +2,7 @@
 import React, { useState } from 'react';
 import { Asset, Category } from '../types';
 import { AssetCard } from './AssetCard';
+import { Search } from 'lucide-react';
 
 interface RepositoryProps {
   assets: Asset[];
@@ -19,6 +20,7 @@ export const Repository: React.FC<RepositoryProps> = ({
   subtitle = "INDEX OF AVAILABLE TOOLS"
 }) => {
   const [activeFilter, setActiveFilter] = useState<Category>('All');
+  const [searchTerm, setSearchTerm] = useState('');
 
   // Calculate category counts
   const categoryCounts = React.useMemo(() => {
@@ -53,14 +55,21 @@ export const Repository: React.FC<RepositoryProps> = ({
   }, [categoryCounts]);
 
   const filteredAssets = assets.filter(asset => {
-    if (activeFilter === 'All') return true;
+    // First apply category filter
+    const matchesCategory = activeFilter === 'All' 
+      ? true 
+      : activeFilter === 'Other'
+        ? !STANDARD_CATEGORIES.includes(asset.category)
+        : asset.category === activeFilter;
     
-    if (activeFilter === 'Other') {
-      // If the filter is 'Other', we show anything that isn't a standard category
-      return !STANDARD_CATEGORIES.includes(asset.category);
-    }
-
-    return asset.category === activeFilter;
+    // Then apply search filter
+    const matchesSearch = searchTerm.trim() === '' 
+      ? true
+      : asset.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        asset.shortDesc.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        asset.category.toLowerCase().includes(searchTerm.toLowerCase());
+    
+    return matchesCategory && matchesSearch;
   });
 
   return (
@@ -68,10 +77,24 @@ export const Repository: React.FC<RepositoryProps> = ({
       <div className="flex flex-col gap-8">
         
         {/* Header Area */}
-        <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 border-b border-[#333] pb-6">
-          <div>
-            <h1 className="text-3xl font-bold mb-2 font-source">{title}</h1>
-            <p className="text-xs text-gray-500 font-mono">{subtitle}</p>
+        <div className="flex flex-col gap-6 border-b border-[#333] pb-6">
+          <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
+            <div>
+              <h1 className="text-3xl font-bold mb-2 font-source">{title}</h1>
+              <p className="text-xs text-gray-500 font-mono">{subtitle}</p>
+            </div>
+            
+            {/* Search Bar */}
+            <div className="relative w-full md:w-64">
+              <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" />
+              <input
+                type="text"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                placeholder="SEARCH..."
+                className="w-full bg-[#111] border border-[#333] pl-9 pr-3 py-2 text-xs text-white focus:outline-none focus:border-yellow-400 uppercase placeholder:text-gray-700 font-mono transition-colors"
+              />
+            </div>
           </div>
           
           {/* Filter Bar */}
@@ -96,6 +119,7 @@ export const Repository: React.FC<RepositoryProps> = ({
         {/* Results Count */}
         <div className="font-mono text-xs text-gray-500 mb-2">
           &gt; SHOWING {filteredAssets.length} RESULT(S)
+          {searchTerm && <span className="text-yellow-400"> // SEARCH: "{searchTerm}"</span>}
         </div>
 
         {/* Grid */}
@@ -110,8 +134,13 @@ export const Repository: React.FC<RepositoryProps> = ({
         </div>
 
         {filteredAssets.length === 0 && (
-          <div className="py-20 text-center border border-[#333] border-dashed text-gray-500">
-            NO_DATA_FOUND
+          <div className="py-20 text-center border border-[#333] border-dashed">
+            <p className="text-gray-500 font-mono text-sm mb-2">NO_DATA_FOUND</p>
+            {searchTerm && (
+              <p className="text-gray-600 text-xs">
+                Try adjusting your search term or category filter
+              </p>
+            )}
           </div>
         )}
       </div>

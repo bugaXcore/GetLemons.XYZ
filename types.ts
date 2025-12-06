@@ -36,6 +36,9 @@ export interface Asset {
   featured: boolean;
   section?: 'repository' | 'works';
   gallery?: string[];
+  downloadUrl?: string; // Link to download the actual asset
+  installationSteps?: string[]; // Custom installation steps
+  created_at?: string; // ISO timestamp from database
 }
 
 export interface HomepageConfig {

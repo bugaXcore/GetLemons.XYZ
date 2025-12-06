@@ -14,6 +14,8 @@ CREATE TABLE IF NOT EXISTS assets (
   featured BOOLEAN DEFAULT FALSE,
   section TEXT,
   gallery TEXT[],
+  download_url TEXT,
+  installation_steps TEXT[],
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
@@ -103,3 +105,11 @@ CREATE OR REPLACE VIEW featured_assets AS
 SELECT * FROM assets
 WHERE featured = true
 ORDER BY created_at DESC;
+
+-- Migration: Add download_url column to existing tables (run if upgrading)
+-- Uncomment the line below if you already have an assets table without download_url:
+-- ALTER TABLE assets ADD COLUMN IF NOT EXISTS download_url TEXT;
+
+-- Migration: Add installation_steps column to existing tables (run if upgrading)
+-- Uncomment the line below if you already have an assets table without installation_steps:
+-- ALTER TABLE assets ADD COLUMN IF NOT EXISTS installation_steps TEXT[];
