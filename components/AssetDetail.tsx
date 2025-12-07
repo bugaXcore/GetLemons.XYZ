@@ -197,7 +197,7 @@ export const AssetDetail: React.FC<AssetDetailProps> = ({ asset, onBack }) => {
              <div className="md:col-span-1">
                 <div className="bg-[#151515] p-5 border border-[#333] font-mono text-xs text-gray-400 relative">
                   <div className="absolute top-0 left-0 w-full h-1 bg-yellow-400/20"></div>
-                  <p className="mb-3 uppercase font-bold text-yellow-500 tracking-wider">Installation_Protocol:</p>
+                  <p className="mb-3 uppercase font-bold text-yellow-500 tracking-wider">Installation:</p>
                   <ol className="list-decimal list-inside space-y-2 marker:text-gray-600">
                     {asset.installationSteps && asset.installationSteps.length > 0 ? (
                       asset.installationSteps.map((step, index) => (
