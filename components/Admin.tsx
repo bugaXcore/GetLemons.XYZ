@@ -43,7 +43,8 @@ export const Admin: React.FC<AdminProps> = ({ assets, homeConfig, onSave, onDele
     gallery: [],
     section: 'repository',
     downloadUrl: '',
-    installationSteps: []
+    installationSteps: [],
+    readmeUrl: ''
   };
   const [formData, setFormData] = useState<Partial<Asset>>(defaultForm);
   const [galleryInput, setGalleryInput] = useState('');
@@ -205,10 +206,12 @@ export const Admin: React.FC<AdminProps> = ({ assets, homeConfig, onSave, onDele
       gallery: formData.gallery || [],
       section: (formData.section as 'repository' | 'works') || 'repository',
       downloadUrl: formData.downloadUrl || undefined,
-      installationSteps: formData.installationSteps || undefined
+      installationSteps: formData.installationSteps || undefined,
+      readmeUrl: formData.readmeUrl || undefined
     };
 
     console.log('💾 Saving asset with downloadUrl:', formData.downloadUrl);
+    console.log('📄 Saving asset with readmeUrl:', formData.readmeUrl);
     console.log('📦 Full asset object:', assetToSave);
 
     onSave(assetToSave);
@@ -554,6 +557,22 @@ export const Admin: React.FC<AdminProps> = ({ assets, homeConfig, onSave, onDele
                 value={formData.downloadUrl || ''}
                 onChange={handleFormChange}
                 placeholder="https://example.com/files/asset.zip"
+                className="w-full bg-transparent border border-[#333] p-3 text-white focus:border-yellow-400 focus:outline-none font-mono text-sm"
+              />
+            </div>
+
+            {/* README URL */}
+            <div className="space-y-1 pt-2">
+              <label className="text-[10px] uppercase text-gray-500 tracking-wider flex items-center gap-2">
+                <span>README Link (Markdown Documentation)</span>
+                <span className="text-[9px] text-gray-600 normal-case font-normal">(Link to .md file)</span>
+              </label>
+              <input
+                type="url"
+                name="readmeUrl"
+                value={formData.readmeUrl || ''}
+                onChange={handleFormChange}
+                placeholder="https://example.com/docs/README.md"
                 className="w-full bg-transparent border border-[#333] p-3 text-white focus:border-yellow-400 focus:outline-none font-mono text-sm"
               />
             </div>

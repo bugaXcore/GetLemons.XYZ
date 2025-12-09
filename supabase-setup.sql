@@ -16,6 +16,7 @@ CREATE TABLE IF NOT EXISTS assets (
   gallery TEXT[],
   download_url TEXT,
   installation_steps TEXT[],
+  readme_url TEXT,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
@@ -113,3 +114,7 @@ ORDER BY created_at DESC;
 -- Migration: Add installation_steps column to existing tables (run if upgrading)
 -- Uncomment the line below if you already have an assets table without installation_steps:
 -- ALTER TABLE assets ADD COLUMN IF NOT EXISTS installation_steps TEXT[];
+
+-- Migration: Add readme_url column to existing tables (run if upgrading)
+-- Uncomment the line below if you already have an assets table without readme_url:
+-- ALTER TABLE assets ADD COLUMN IF NOT EXISTS readme_url TEXT;

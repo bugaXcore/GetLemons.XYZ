@@ -71,6 +71,7 @@ export default function App() {
         fullDesc: item.full_desc || item.fullDesc,
         downloadUrl: item.download_url || item.downloadUrl,
         installationSteps: item.installation_steps || item.installationSteps,
+        readmeUrl: item.readme_url || item.readmeUrl,
       }));
       setAssets(transformedAssets as Asset[]);
     } else {
@@ -127,7 +128,8 @@ export default function App() {
         gallery: asset.gallery,
         section: asset.section,
         download_url: asset.downloadUrl,
-        installation_steps: asset.installationSteps
+        installation_steps: asset.installationSteps,
+        readme_url: asset.readmeUrl
       };
       
       console.log('🟢 Inserting to DB:', dbAssetNew);
@@ -150,7 +152,8 @@ export default function App() {
         gallery: asset.gallery,
         section: asset.section,
         download_url: asset.downloadUrl,
-        installation_steps: asset.installationSteps
+        installation_steps: asset.installationSteps,
+        readme_url: asset.readmeUrl
       };
       
       console.log('🟡 Updating DB for ID:', asset.id, 'with data:', dbAssetUpdate);
@@ -263,15 +266,15 @@ export default function App() {
   };
 
   return (
-    <div className="relative w-full min-h-screen bg-[#09090b] text-[#eee] selection:bg-yellow-400 selection:text-black flex flex-col overflow-x-hidden">
+    <div className="relative w-full min-h-screen bg-[#09090b] text-[#eee] selection:bg-yellow-400 selection:text-black flex flex-col overflow-x-hidden" style={{ isolation: 'isolate' }}>
       
       {/* --- Background Layer --- */}
       <div className="fixed inset-0 z-0 pointer-events-auto">
         <PulseCanvas config={bgConfig} />
       </div>
 
-      {/* --- Foreground Layer --- */}
-      <div className="relative z-10 flex flex-col min-h-screen pointer-events-none">
+      {/* --- Foreground Layer with blend mode --- */}
+      <div className="relative z-10 flex flex-col min-h-screen pointer-events-none" style={{ mixBlendMode: 'normal' }}>
         {/* Enable pointer events only for interactive children */}
         <div className="pointer-events-auto w-full">
            <Header 

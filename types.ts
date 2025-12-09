@@ -38,6 +38,7 @@ export interface Asset {
   gallery?: string[];
   downloadUrl?: string; // Link to download the actual asset
   installationSteps?: string[]; // Custom installation steps
+  readmeUrl?: string; // Link to markdown documentation file
   created_at?: string; // ISO timestamp from database
 }
 
