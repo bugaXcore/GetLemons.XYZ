@@ -1,7 +1,15 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, lazy, Suspense } from 'react';
 import { Asset } from '../types';
-import { ArrowLeft, Download, Monitor, FileText, Hash, ChevronLeft, ChevronRight } from 'lucide-react';
+import { ArrowLeft, Download, Monitor, FileText, Hash, ChevronLeft, ChevronRight, ChevronDown } from 'lucide-react';
+import remarkGfm from 'remark-gfm';
+
+// Lazy load markdown components
+const ReactMarkdown = lazy(() => import('react-markdown'));
+const SyntaxHighlighter = lazy(() => import('react-syntax-highlighter').then(mod => ({ default: mod.Prism })));
+
+// Import syntax highlighter theme (not lazy since it's just CSS)
+import { oneDark } from 'react-syntax-highlighter/dist/esm/styles/prism';
 
 interface AssetDetailProps {
   asset: Asset;
@@ -11,6 +19,10 @@ interface AssetDetailProps {
 export const AssetDetail: React.FC<AssetDetailProps> = ({ asset, onBack }) => {
   const gallery = asset.gallery || [];
   const [activeImageIndex, setActiveImageIndex] = useState(0);
+  const [isInstallationOpen, setIsInstallationOpen] = useState(false);
+  const [viewMode, setViewMode] = useState<'gallery' | 'readme'>('gallery');
+  const [readmeContent, setReadmeContent] = useState<string>('');
+  const [loadingReadme, setLoadingReadme] = useState(false);
 
   const activeImage = gallery.length > 0 ? gallery[activeImageIndex] : null;
   const isWork = asset.section === 'works';
@@ -37,6 +49,24 @@ export const AssetDetail: React.FC<AssetDetailProps> = ({ asset, onBack }) => {
     if (gallery.length <= 1) return;
     setActiveImageIndex((prev) => (prev === 0 ? gallery.length - 1 : prev - 1));
   };
+
+  // Fetch README content when switching to readme view
+  useEffect(() => {
+    if (viewMode === 'readme' && asset.readmeUrl && !readmeContent) {
+      setLoadingReadme(true);
+      fetch(asset.readmeUrl)
+        .then(res => res.text())
+        .then(text => {
+          setReadmeContent(text);
+          setLoadingReadme(false);
+        })
+        .catch(err => {
+          console.error('Failed to load README:', err);
+          setReadmeContent('Failed to load documentation.');
+          setLoadingReadme(false);
+        });
+    }
+  }, [viewMode, asset.readmeUrl, readmeContent]);
 
   return (
     <div className="max-w-7xl mx-auto px-4 md:px-8 py-8 w-full animate-in fade-in duration-300 flex flex-col">
@@ -104,6 +134,24 @@ export const AssetDetail: React.FC<AssetDetailProps> = ({ asset, onBack }) => {
           <span className="text-white">{formatDate(asset.created_at)}</span>
         </div>
         
+        {/* README Toggle Button */}
+        {asset.readmeUrl && (
+          <>
+            <div className="w-px h-3 bg-[#333] hidden sm:block"></div>
+            <button
+              onClick={() => setViewMode(viewMode === 'readme' ? 'gallery' : 'readme')}
+              className={`flex items-center gap-2 px-2 py-1 border transition-all hover:bg-[#222] ${
+                viewMode === 'readme' 
+                  ? 'border-yellow-400 text-yellow-400' 
+                  : 'border-[#333] text-gray-400 hover:text-white'
+              }`}
+            >
+              <FileText size={14} />
+              <span className="uppercase font-bold">README</span>
+            </button>
+          </>
+        )}
+        
         {/* Tags Inline */}
         <div className="sm:ml-auto flex flex-wrap gap-2 border-t border-[#333] sm:border-0 pt-2 sm:pt-0 w-full sm:w-auto">
            {[asset.category, asset.fileType?.replace('.','') || 'N/A', 'MOTION', 'DEV'].filter(Boolean).map(tag => (
@@ -116,7 +164,66 @@ export const AssetDetail: React.FC<AssetDetailProps> = ({ asset, onBack }) => {
 
       {/* Full Width Cinema Viewer / Carousel */}
       <div className="w-full aspect-video max-h-[60vh] bg-[#0a0a0a] border border-[#333] relative overflow-hidden group mb-4 select-none">
-        {activeImage ? (
+        {viewMode === 'readme' ? (
+          /* README Viewer */
+          <div className="w-full h-full overflow-y-auto p-8">
+            {loadingReadme ? (
+              <div className="flex items-center justify-center h-full text-gray-400">
+                Loading documentation...
+              </div>
+            ) : readmeContent ? (
+              <Suspense fallback={<div className="text-gray-400">Loading markdown...</div>}>
+                <div style={{
+                  fontFamily: '"Monaco", "Menlo", "Ubuntu Mono", monospace',
+                  fontSize: '14px',
+                  lineHeight: '1.6',
+                  color: '#e0e0e0'
+                }}>
+                  <ReactMarkdown
+                    remarkPlugins={[remarkGfm]}
+                    components={{
+                      code({className, children, ...props}: any) {
+                        const match = /language-(\w+)/.exec(className || '');
+                        return match ? (
+                          <Suspense fallback={<pre className="bg-[#1a1a1a] p-4 rounded">{children}</pre>}>
+                            <SyntaxHighlighter
+                              style={oneDark}
+                              language={match[1]}
+                              PreTag="div"
+                              {...props}
+                            >
+                              {String(children).replace(/\n$/, '')}
+                            </SyntaxHighlighter>
+                          </Suspense>
+                        ) : (
+                          <code className="bg-[#1a1a1a] px-1.5 py-0.5 rounded text-yellow-400 font-mono text-sm" {...props}>
+                            {children}
+                          </code>
+                        );
+                      },
+                      h1: ({children}) => <h1 className="text-2xl font-bold text-yellow-400 mb-4 border-b border-yellow-400/20 pb-2">{children}</h1>,
+                      h2: ({children}) => <h2 className="text-xl font-bold text-white mb-3 mt-6">{children}</h2>,
+                      h3: ({children}) => <h3 className="text-lg font-bold text-gray-300 mb-2 mt-4">{children}</h3>,
+                      p: ({children}) => <p className="mb-4 text-gray-300">{children}</p>,
+                      ul: ({children}) => <ul className="list-disc list-inside mb-4 space-y-1 text-gray-300">{children}</ul>,
+                      ol: ({children}) => <ol className="list-decimal list-inside mb-4 space-y-1 text-gray-300">{children}</ol>,
+                      li: ({children}) => <li className="ml-4">{children}</li>,
+                      a: ({href, children}) => <a href={href} className="text-yellow-400 hover:underline" target="_blank" rel="noopener noreferrer">{children}</a>,
+                      blockquote: ({children}) => <blockquote className="border-l-4 border-yellow-400/50 pl-4 italic text-gray-400 mb-4">{children}</blockquote>,
+                    }}
+                  >
+                    {readmeContent}
+                  </ReactMarkdown>
+                </div>
+              </Suspense>
+            ) : (
+              <div className="flex items-center justify-center h-full text-gray-400">
+                No documentation available
+              </div>
+            )}
+          </div>
+        ) : activeImage ? (
+          /* Gallery Viewer */
           <>
             <img 
               src={activeImage} 
@@ -195,22 +302,35 @@ export const AssetDetail: React.FC<AssetDetailProps> = ({ asset, onBack }) => {
            
            {!isWork && (
              <div className="md:col-span-1">
-                <div className="bg-[#151515] p-5 border border-[#333] font-mono text-xs text-gray-400 relative">
+                <div className="bg-[#151515] border border-[#333] font-mono text-xs text-gray-400 relative">
                   <div className="absolute top-0 left-0 w-full h-1 bg-yellow-400/20"></div>
-                  <p className="mb-3 uppercase font-bold text-yellow-500 tracking-wider">Installation:</p>
-                  <ol className="list-decimal list-inside space-y-2 marker:text-gray-600">
-                    {asset.installationSteps && asset.installationSteps.length > 0 ? (
-                      asset.installationSteps.map((step, index) => (
-                        <li key={index} dangerouslySetInnerHTML={{ __html: step.replace(/{fileType}/g, `<span class="text-white">${asset.fileType}</span>`) }} />
-                      ))
-                    ) : (
-                      <>
-                        <li>Download <span className="text-white">{asset.fileType}</span> file</li>
-                        <li>Extract to root dir</li>
-                        <li>Run via terminal</li>
-                      </>
-                    )}
-                  </ol>
+                  <button
+                    onClick={() => setIsInstallationOpen(!isInstallationOpen)}
+                    className="w-full p-5 flex items-center justify-between hover:bg-[#1a1a1a] transition-colors"
+                  >
+                    <p className="uppercase font-bold text-yellow-500 tracking-wider">Installation:</p>
+                    <ChevronDown 
+                      size={16} 
+                      className={`text-yellow-500 transition-transform duration-200 ${isInstallationOpen ? 'rotate-180' : ''}`}
+                    />
+                  </button>
+                  {isInstallationOpen && (
+                    <div className="px-5 pb-5 animate-in fade-in slide-in-from-top-2 duration-200">
+                      <ol className="list-decimal list-inside space-y-2 marker:text-gray-600">
+                        {asset.installationSteps && asset.installationSteps.length > 0 ? (
+                          asset.installationSteps.map((step, index) => (
+                            <li key={index} dangerouslySetInnerHTML={{ __html: step.replace(/{fileType}/g, `<span class="text-white">${asset.fileType}</span>`) }} />
+                          ))
+                        ) : (
+                          <>
+                            <li>Download <span className="text-white">{asset.fileType}</span> file</li>
+                            <li>Extract to root dir</li>
+                            <li>Run via terminal</li>
+                          </>
+                        )}
+                      </ol>
+                    </div>
+                  )}
                 </div>
              </div>
            )}
