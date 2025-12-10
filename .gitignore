@@ -18,6 +18,9 @@ dist-ssr
 # Vite cache (causes Dropbox sync conflicts)
 node_modules/.vite
 
+# Production files (user content, not code)
+Production/
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
